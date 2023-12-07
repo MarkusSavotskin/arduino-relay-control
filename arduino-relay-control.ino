@@ -1,4 +1,8 @@
+#include "Arduino.h"
 #include <ESP8266WiFi.h>
+#include <WiFiClient.h>
+#include <ESP8266WebServer.h>
+#include <ESP8266mDNS.h>
 
 const char* ssid = "SSID";
 const char* password = "Password";
@@ -20,6 +24,32 @@ const char* wl_status_to_string(wl_status_t status) {
   }
 }
 
+ESP8266WebServer server(80);
+ 
+// Define routing
+void restServerRouting() {
+    server.on("/", HTTP_GET, []() {
+        server.send(200, F("text/html"),
+            F("Hello stranger!")); 
+    });
+}
+ 
+// Manage not found URL
+void handleNotFound() {
+  String message = "File Not Found\n\n";
+  message += "URI: ";
+  message += server.uri();
+  message += "\nMethod: ";
+  message += (server.method() == HTTP_GET) ? "GET" : "POST";
+  message += "\nArguments: ";
+  message += server.args();
+  message += "\n";
+  for (uint8_t i = 0; i < server.args(); i++) {
+    message += " " + server.argName(i) + ": " + server.arg(i) + "\n";
+  }
+  server.send(404, "text/plain", message);
+}
+
 void initWiFi() {
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);
@@ -36,6 +66,20 @@ void initWiFi() {
 void setup() {
   Serial.begin(115200);
   initWiFi();
+
+  // Activate mDNS this is used to be able to connect to the server
+  // with local DNS hostmane esp8266.local
+  if (MDNS.begin("esp8266")) {
+    Serial.println("MDNS responder started");
+  }
+ 
+  // Set server routing
+  restServerRouting();
+  // Set not found response
+  server.onNotFound(handleNotFound);
+  // Start server
+  server.begin();
+  Serial.println("HTTP server started");
 }
 
 void loop() {
@@ -46,4 +90,5 @@ void loop() {
     Serial.println(wl_status_to_string(WiFi.status()));
     previousMillis = currentMillis;
   }
+  server.handleClient();
 }
