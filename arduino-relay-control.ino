@@ -7,8 +7,12 @@
 const char* ssid = "SSID";
 const char* password = "Password";
 
+// Relay pin
+const int relay_pin = 0;
+bool relay_status = false;
+
 unsigned long previousMillis = 0;
-unsigned long interval = 5000;
+unsigned long interval = 30000;
 
 const char* wl_status_to_string(wl_status_t status) {
   switch (status) {
@@ -25,6 +29,31 @@ const char* wl_status_to_string(wl_status_t status) {
 }
 
 ESP8266WebServer server(80);
+
+// Serving Hello world
+void relayOn() {
+    digitalWrite(relay_pin, LOW);
+    relay_status = true;
+    server.send(200, "text/json", "{\"relay\": \"on\"}");
+    Serial.println("Turned relay on");
+}
+
+void relayOff() {
+    digitalWrite(relay_pin, HIGH);
+    relay_status = false;
+    server.send(200, "text/json", "{\"relay\": \"off\"}");
+    Serial.println("Turned relay off");
+}
+
+void getRelayStatus() {
+    if (relay_status) {
+      server.send(200, "text/json", "{\"relay\": \"on\"}");
+      Serial.println("Relay on");
+    } else {
+      server.send(200, "text/json", "{\"relay\": \"off\"}");
+      Serial.println("Relay off");
+    }
+}
  
 // Define routing
 void restServerRouting() {
@@ -32,6 +61,9 @@ void restServerRouting() {
         server.send(200, F("text/html"),
             F("Hello stranger!")); 
     });
+    server.on(F("/relay-on"), HTTP_GET, relayOn);
+    server.on(F("/relay-off"), HTTP_GET, relayOff);
+    server.on(F("/relay-status"), HTTP_GET, getRelayStatus);
 }
  
 // Manage not found URL
@@ -65,13 +97,11 @@ void initWiFi() {
 
 void setup() {
   Serial.begin(115200);
-  initWiFi();
 
-  // Activate mDNS this is used to be able to connect to the server
-  // with local DNS hostmane esp8266.local
-  if (MDNS.begin("esp8266")) {
-    Serial.println("MDNS responder started");
-  }
+  pinMode(relay_pin, OUTPUT);
+  digitalWrite(relay_pin, HIGH);
+
+  initWiFi();
  
   // Set server routing
   restServerRouting();
@@ -83,7 +113,7 @@ void setup() {
 }
 
 void loop() {
-  //print the Wi-Fi status every 5 seconds
+  //print the Wi-Fi status every 30 seconds
   unsigned long currentMillis = millis();
   if (currentMillis - previousMillis >= interval) {
     Serial.print("Connection status: ");
