@@ -8,7 +8,7 @@ const char* ssid = "SSID";
 const char* password = "Password";
 
 // Relay pin
-const int relay_pin = 0;
+const int relay_pin = 3;
 bool relay_status = false;
 
 unsigned long previousMillis = 0;
@@ -32,14 +32,14 @@ ESP8266WebServer server(80);
 
 // Serving Hello world
 void relayOn() {
-    digitalWrite(relay_pin, LOW);
+    digitalWrite(relay_pin, HIGH);
     relay_status = true;
     server.send(200, "text/json", "{\"relay\": \"on\"}");
     Serial.println("Turned relay on");
 }
 
 void relayOff() {
-    digitalWrite(relay_pin, HIGH);
+    digitalWrite(relay_pin, LOW);
     relay_status = false;
     server.send(200, "text/json", "{\"relay\": \"off\"}");
     Serial.println("Turned relay off");
@@ -99,7 +99,7 @@ void setup() {
   Serial.begin(115200);
 
   pinMode(relay_pin, OUTPUT);
-  digitalWrite(relay_pin, HIGH);
+  digitalWrite(relay_pin, LOW);
 
   initWiFi();
  
